@@ -8,6 +8,8 @@ import os
 import argparse
 from tqdm import tqdm
 import time
+from sklearn.manifold import TSNE
+import matplotlib.pyplot as plt
 
 os.environ["CUDA_VISIBLE_DEVICES"] = ','.join(map(str, [3]))
 os.environ["KMP_DUPLICATE_LnIB_OK"] = "TRUE"
@@ -220,4 +222,23 @@ with tqdm(total=args.num_epoch) as pbar:
         print('{} AUC:{:.4f}'.format(args.dataset, auc))
 
     end = time.time()
+
+    #keshihua
+    model_vis = model_list[0]
+    model_vis.eval()
+    adj_norm_vis = normalize_adj_tensor(raw_adj)
+    with torch.no_grad():
+        node_emb, _, _ = model_vis.forward(features, adj_norm_vis)
+        emb = node_emb[0].cpu().numpy()
+    labels = ano_label
+    tsne = TSNE(n_components=2, perplexity=30, random_state=42, init='pca', learning_rate='auto')
+    emb_2d = tsne.fit_transform(emb)
+    plt.figure(figsize=(10, 8))
+    colors = ['#5d7eaf' if label == 0 else '#f52419' for label in labels]
+    plt.scatter(emb_2d[:, 0], emb_2d[:, 1], c=colors, s=20, alpha=0.7, edgecolors='none')
+    plt.axis('off')
+    plt.text(0.5, -0.05, 'TAM', transform=plt.gca().transAxes,
+             ha='center', va='top', fontsize=12)
+    plt.savefig('/kaggle/working/tsne_embedding_tam8.png', dpi=300, bbox_inches='tight', pad_inches=0)
+
     print(end - start)
